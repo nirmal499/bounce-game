@@ -13,6 +13,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <btBulletDynamicsCommon.h>
+
 /*  For drawing regular game objects, we will create a separate class from the LightRenderer
     class by adding texture, and we will also add motion to the object by adding physical
     properties. 
@@ -20,7 +22,7 @@
 class MeshRenderer{
     public:
 
-        MeshRenderer(MeshType meshType, Camera* camera);
+        MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody);
         ~MeshRenderer();
 
         void draw();
@@ -40,6 +42,8 @@ class MeshRenderer{
 
         glm::vec3 position, scale;
         GLuint vao, vbo, ebo, texture, program;
+
+        btRigidBody* rigidBody;
 };
 
 #endif

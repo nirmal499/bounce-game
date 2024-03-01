@@ -1,7 +1,8 @@
 #include "MeshRenderer.h"
 
-MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera) {
+MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody) {
 
+	this->rigidBody = _rigidBody;
 	this->camera = camera;
 	this->scale =  glm::vec3(1.0f, 1.0f, 1.0f);
 	this->position = glm::vec3(0.0, 0.0, 0.0);
@@ -42,21 +43,33 @@ MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera) {
 
 void MeshRenderer::draw() {
 
+	btTransform t;
+	rigidBody->getMotionState()->getWorldTransform(t);
+	btQuaternion rotation = t.getRotation();
+	btVector3 translate = t.getOrigin();
+
+	glm::mat4 RotationMatrix = glm::rotate(glm::mat4(1.0f), rotation.getAngle(),
+		glm::vec3(rotation.getAxis().getX(),rotation.getAxis().getY(), rotation.getAxis().getZ()));
+
+	glm::mat4 TranslationMatrix = glm::translate(glm::mat4(1.0f),
+		glm::vec3(translate.getX(), translate.getY(), translate.getZ()));
+
+	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+
+	/* The new modelMatrix variable will be the multiplication of the scale, rotation, and translation matrices in that order */
+	modelMatrix = TranslationMatrix * RotationMatrix * scaleMatrix;
+	
+	/*
 	glm::mat4 TranslationMatrix = glm::translate(glm::mat4(1.0f), position);
 	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
 
 	modelMatrix = glm::mat4(1.0f); // Identity 4*4 Matrix
-	/* 	We initialize the modelMatrix variable and the multiply scale and
-		translation matrix and assign them to the modelMatrix variable.
-	*/
 	modelMatrix = TranslationMatrix * scaleMatrix;
+	*/
 
 	glm::mat4 view = camera->getViewMatrix();
 	glm::mat4 proj = camera->getProjectionMatrix();
-
-	/* 	The order in which the view and projection matrices are multiplied
-		matters and cannot be reversed 
-	*/
+	/* 	The order in which the view and projection matrices are multiplied matters and cannot be reversed  */
 	glm::mat4 vp = proj * view;
 	
 	glUseProgram(this->program);

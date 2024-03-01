@@ -1,0 +1,24 @@
+$ git clone https://github.com/bulletphysics/bullet3.git dependencies
+
+$ cd dependencies/bullet3
+$ mkdir build
+$ cd build
+$ cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/home/nbaskey/my_opt/bulletphysics_libs
+
+$ make -j4
+$ make install or $ sudo make install
+
+In the Root CMakeLists.txt of your project
+
+"""
+set(BULLET_ROOT "/home/nbaskey/my_opt/bulletphysics_libs/") # where to find Bullet
+find_package(Bullet REQUIRED)
+
+set(BULLET_INCLUDE_DIR "/home/nbaskey/my_opt/bulletphysics_libs/include/bullet/")
+
+target_link_libraries(${APP_NAME} ${BULLET_LIBRARIES})
+target_include_directories(${APP_NAME} PUBLIC ${BULLET_INCLUDE_DIR})
+"""
+
+
+# find_package(Bullet REQUIRED): CMake 3.22.1 comes installed with the cmake package
