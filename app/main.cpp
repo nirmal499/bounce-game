@@ -8,10 +8,23 @@
 
 #include "ShaderLoader.h"
 #include "Camera.h"
-#include "Renderer.h"
+#include "LightRenderer.h"
+#include "MeshRenderer.h"
+#include "TextureLoader.h"
 
-Camera* camera;
-Renderer* renderer;
+#define ASSEST_FOLDER_PATH "/home/nbaskey/Documents/current_projects/doing/cpp_game_dev_packt/assets"
+
+#define SAFE_DELETE(p) \
+    do { \
+        if (p != nullptr) { \
+            delete p; \
+            p = nullptr; \
+        } \
+    } while (false)
+
+Camera* camera = nullptr;
+LightRenderer* light_renderer = nullptr;
+MeshRenderer* sphere = nullptr;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -65,8 +78,9 @@ int main(){
 
     glfwTerminate();
 
-    delete camera;
-    delete renderer;
+    SAFE_DELETE(camera);
+    SAFE_DELETE(light_renderer);
+    SAFE_DELETE(sphere);
 
     return 0;
 }
@@ -89,32 +103,40 @@ void initGame() {
 	glEnable(GL_DEPTH_TEST); 
 
 	ShaderLoader shader;
+    TextureLoader tLoader;
 
-	GLuint flatShaderProgram = shader.createProgram("/home/nbaskey/Documents/current_projects/doing/cpp_game_dev_packt/assets/FlatModel.vs", "/home/nbaskey/Documents/current_projects/doing/cpp_game_dev_packt/assets/FlatModel.fs");
+    GLuint sphereTexture = tLoader.getTextureID(ASSEST_FOLDER_PATH "/textures/globe.jpg");
+
+	GLuint flatShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/FlatModel.vs",ASSEST_FOLDER_PATH "/shader/FlatModel.fs");
+	GLuint texturedShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/TexturedModel.vs", ASSEST_FOLDER_PATH "/shader/TexturedModel.fs");
 	
-	camera = new Camera(45.0f, 800, 600, 0.1f, 100.0f, glm::vec3(0.0f, 4.0f, 6.0f));
+	camera = new Camera(45.0f, 800, 600, 0.1f, 100.0f, glm::vec3(0.0f, 0.0f, 4.0f));
 
-	renderer = new Renderer(MeshType::kTriangle, camera);
-	renderer->setProgram(flatShaderProgram);
-	renderer->setPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // Position of the MESH(triangle)
+	// light_renderer = new LightRenderer(MeshType::kSphere, camera);
+    // light_renderer->setProgram(flatShaderProgram);
+    // light_renderer->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+
+	sphere = new MeshRenderer(MeshType::kSphere, camera);
+	sphere->setProgram(texturedShaderProgram);
+    sphere->setTexture(sphereTexture);
+	sphere->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    sphere->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
 
     /*  
-        Position of MESH(triangle) 
+        Position of MESH
         [Right Hand Coordinate System] 
         [+z is coming out the screen]
         [+y is upward]
         [+x is right]
-
-        As we go towards positive z [INCREMENTING z value from 0], then the triangle gets bigger as MESH is coming nearer to the camera
-        As we go towards negative z [DECREMENTING z value from 0], then the triangle gets smaller as MESH is going far away from the camera
     */
 
 }
 
 void renderScene(){
 
-    glClearColor(0.3, 0.6, 0.4, 1.0);   // sets the color
+    glClearColor(0.0, 0.0, 0.0, 1.0);   // sets the color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
-    renderer->draw();
+    sphere->draw();
+    // light_renderer->draw();
 }

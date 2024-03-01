@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/main.dir/app/main.cpp.o CMakeFiles/main.dir/app/Mesh.cpp.o CMakeFiles/main.dir/app/Renderer.cpp.o CMakeFiles/main.dir/app/ShaderLoader.cpp.o CMakeFiles/main.dir/app/Camera.cpp.o CMakeFiles/main.dir/glad/src/glad.c.o -o main  external/glfw/src/libglfw3.a /usr/lib/x86_64-linux-gnu/librt.a -lm -ldl 
