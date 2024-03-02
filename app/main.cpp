@@ -30,6 +30,13 @@ Camera* camera = nullptr;
 LightRenderer* light = nullptr;
 MeshRenderer* sphere = nullptr;
 MeshRenderer* ground = nullptr;
+MeshRenderer* enemy = nullptr;
+
+GLuint sphereTexture;
+GLuint groundTexture;
+
+GLuint flatShaderProgram;
+GLuint texturedShaderProgram;
 
 /*  This object keeps track of all the physics settings and objects in the current scene. */
 btDiscreteDynamicsWorld* dynamicsWorld;
@@ -39,6 +46,8 @@ void processInput(GLFWwindow *window);
 
 void initGame();
 void renderScene();
+void addRigidBodies();
+void myTickCallback(btDynamicsWorld *dynamicsWorld, btScalar timeStep);
 
 static void glfwError(int id, const char* description)
 {
@@ -105,6 +114,7 @@ int main(){
     SAFE_DELETE(camera);
     SAFE_DELETE(light);
     SAFE_DELETE(sphere);
+    SAFE_DELETE(enemy);
 
     return 0;
 }
@@ -129,11 +139,13 @@ void initGame() {
 	ShaderLoader shader;
     TextureLoader tLoader;
 
-    GLuint sphereTexture = tLoader.getTextureID(ASSEST_FOLDER_PATH "/textures/globe.jpg");
-    GLuint groundTexture = tLoader.getTextureID(ASSEST_FOLDER_PATH "/textures/ground.jpg");
+    /* Globally declared */
+    sphereTexture = tLoader.getTextureID(ASSEST_FOLDER_PATH "/textures/globe.jpg");
+    groundTexture = tLoader.getTextureID(ASSEST_FOLDER_PATH "/textures/ground.jpg");
 
-	GLuint flatShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/FlatModel.vs",ASSEST_FOLDER_PATH "/shader/FlatModel.fs");
-	GLuint texturedShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/TexturedModel.vs", ASSEST_FOLDER_PATH "/shader/TexturedModel.fs");
+    /* Globally declared */
+	flatShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/FlatModel.vs",ASSEST_FOLDER_PATH "/shader/FlatModel.fs");
+	texturedShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/TexturedModel.vs", ASSEST_FOLDER_PATH "/shader/TexturedModel.fs");
 	
 	camera = new Camera(45.0f, 800, 600, 0.1f, 100.0f, glm::vec3(0.0f, 4.0f, 20.0f));
 
@@ -149,6 +161,25 @@ void initGame() {
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
 	dynamicsWorld->setGravity(btVector3(0, -9.8f, 0));
+    dynamicsWorld->setInternalTickCallback(myTickCallback);
+
+    addRigidBodies();
+
+}
+
+void renderScene(){
+
+    glClearColor(0.0, 0.0, 0.0, 1.0);   // sets the color
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
+
+    sphere->draw();
+    ground->draw();
+    enemy->draw();
+    // light_renderer->draw();
+}
+
+void addRigidBodies(){
+
 
     /* 
         Sphere Rigid Body
@@ -164,9 +195,9 @@ void initGame() {
     */
     // Sphere Rigid Body
 	btCollisionShape* sphereShape = new btSphereShape(1);
-	btDefaultMotionState* sphereMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 10, 0)));
+	btDefaultMotionState* sphereMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 0.5, 0)));
 
-    btScalar mass = 10.0;
+    btScalar mass = 13.0f;
 	btVector3 sphereInertia(0, 0, 0);
 	sphereShape->calculateLocalInertia(mass, sphereInertia);
 
@@ -176,8 +207,10 @@ void initGame() {
     btRigidBody::btRigidBodyConstructionInfo sphereRigidBodyCI(mass, sphereMotionState, sphereShape, sphereInertia);
 
 	btRigidBody* sphereRigidBody = new btRigidBody(sphereRigidBodyCI);
-	sphereRigidBody->setRestitution(1.0f);
+	sphereRigidBody->setRestitution(0.0f);
 	sphereRigidBody->setFriction(1.0f);
+
+    sphereRigidBody->setActivationState(DISABLE_DEACTIVATION);
 
     /*  After these necessary parameters are set, we need to add the rigid body to the
         dynamicWorld we created as follows, using the addRigidBody function of the
@@ -186,33 +219,78 @@ void initGame() {
     dynamicsWorld->addRigidBody(sphereRigidBody);
 
     // Sphere Mesh
-	sphere = new MeshRenderer(MeshType::kSphere, camera, sphereRigidBody);
+	sphere = new MeshRenderer(MeshType::kSphere, camera, sphereRigidBody, "hero");
 	sphere->setProgram(texturedShaderProgram);
     sphere->setTexture(sphereTexture);
     /* We don't have to set the position, as that will be set by the rigid body */
 	// sphere->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     sphere->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
 
+    /*  To access the name of the rendered mesh, we can set this instance as a property of
+        the rigid body by using the setUserPointer property of the RigidBody class.
+        setUserPointer takes a void pointer, so any kind of data can be passed into it.
+        For the sake of convenience, we are just passing the instance of the
+        MeshRenderer class itself. 
+    */
+    sphereRigidBody->setUserPointer(sphere);
+
+    // ------------------------------------------------------------------------------------------------------------------------------- //
+
     // Ground Rigid body
 	btCollisionShape* groundShape = new btBoxShape(btVector3(4.0f, 0.5f, 4.0f));
-	btDefaultMotionState* groundMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, -2.0f, 0)));
+	btDefaultMotionState* groundMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, -1.0f, 0)));
 
 	btRigidBody::btRigidBodyConstructionInfo groundRigidBodyCI(0.0f, new btDefaultMotionState(), groundShape, btVector3(0, 0, 0));
 
 	btRigidBody* groundRigidBody = new btRigidBody(groundRigidBodyCI);
 
 	groundRigidBody->setFriction(1.0);
-	groundRigidBody->setRestitution(0.9);
+	groundRigidBody->setRestitution(0.0);
 
 	groundRigidBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
 
 	dynamicsWorld->addRigidBody(groundRigidBody);
 
     // Ground Mesh
-	ground = new MeshRenderer(MeshType::kCube, camera, groundRigidBody);
+	ground = new MeshRenderer(MeshType::kCube, camera, groundRigidBody, "ground");
 	ground->setProgram(texturedShaderProgram);
 	ground->setTexture(groundTexture);
 	ground->setScale(glm::vec3(4.0f, 0.5f, 4.0f));
+
+    groundRigidBody->setUserPointer(ground);
+
+    // ------------------------------------------------------------------------------------------------------------------------------- //
+
+    // Enemy Rigid body
+    btCollisionShape* shape = new btBoxShape(btVector3(1.0f, 1.0f, 1.0f));
+	btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
+		btVector3(18.0, 1.0f, 0)));
+	btRigidBody::btRigidBodyConstructionInfo rbCI(0.0f, motionState, shape, btVector3(0.0f, 0.0f, 0.0f));
+
+	btRigidBody* rb = new btRigidBody(rbCI);
+
+	rb->setFriction(1.0);
+	rb->setRestitution(0.0);
+
+    /*  If we set the collisionFlag of the enemy to KINEMATIC_OBJECT, you will see
+        that the enemy doesn't go through the sphere but pushes it off the ground
+    */
+	// rb->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+	rb->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+
+    dynamicsWorld->addRigidBody(rb);
+
+	// Enemy Mesh
+	enemy = new MeshRenderer(MeshType::kCube, camera, rb, "enemy");
+	enemy->setProgram(texturedShaderProgram);
+	enemy->setTexture(groundTexture);
+	enemy->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+	rb->setUserPointer(enemy);
+
+    // ------------------------------------------------------------------------------------------------------------------------------- //
+
 
     /*  
         Position of MESH
@@ -221,15 +299,32 @@ void initGame() {
         [+y is upward]
         [+x is right]
     */
-
 }
 
-void renderScene(){
+/*  To update the enemy's movement, we will add a tick function that will be called by the
+    rigid body world. In this tick function, we will update the position of the enemy so that the
+    enemy cube moves from the right of the screen to the left. We will also check whether the
+    enemy has gone beyond the left-hand side of the screen. 
+*/
+void myTickCallback(btDynamicsWorld *dynamicsWorld, btScalar timeStep){
+        
+        // Get enemy transform
+		btTransform t(enemy->rigidBody->getWorldTransform());
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);   // sets the color
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
-    sphere->draw();
-    ground->draw();
-    // light_renderer->draw();
+		// Set enemy position
+        /* -15 in x means left of x (negative x-axis) */
+		t.setOrigin(t.getOrigin() + btVector3(-15, 0, 0) * timeStep);
+
+		// Check if offScreen
+		if (t.getOrigin().x() <= -18.0f) {
+
+            /*  When the enemy goes offscreen, it will be looped around to the right of
+                the screen, as shown in the following screenshot:
+            */
+			t.setOrigin(btVector3(18, 1, 0));
+		}
+
+		enemy->rigidBody->setWorldTransform(t);
+		enemy->rigidBody->getMotionState()->setWorldTransform(t);
 }

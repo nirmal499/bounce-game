@@ -14,6 +14,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <btBulletDynamicsCommon.h>
+#include <string>
 
 /*  For drawing regular game objects, we will create a separate class from the LightRenderer
     class by adding texture, and we will also add motion to the object by adding physical
@@ -22,7 +23,7 @@
 class MeshRenderer{
     public:
 
-        MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody);
+        MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody, std::string _name);
         ~MeshRenderer();
 
         void draw();
@@ -32,6 +33,9 @@ class MeshRenderer{
         void setProgram(GLuint _program);
         /* This textureID function , which we will be using to set the texture on the object. */
         void setTexture(GLuint _textureID);
+        
+        btRigidBody* rigidBody;
+        std::string name = "";
 
     private:
         Camera* camera;
@@ -42,8 +46,6 @@ class MeshRenderer{
 
         glm::vec3 position, scale;
         GLuint vao, vbo, ebo, texture, program;
-
-        btRigidBody* rigidBody;
 };
 
 #endif

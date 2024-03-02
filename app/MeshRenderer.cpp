@@ -1,11 +1,12 @@
 #include "MeshRenderer.h"
 
-MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody) {
+MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody, std::string _name) {
 
 	this->rigidBody = _rigidBody;
 	this->camera = camera;
 	this->scale =  glm::vec3(1.0f, 1.0f, 1.0f);
 	this->position = glm::vec3(0.0, 0.0, 0.0);
+	this->name = _name;
 
 	switch (meshType) {
 
