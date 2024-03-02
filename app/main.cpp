@@ -11,6 +11,7 @@
 #include "LightRenderer.h"
 #include "MeshRenderer.h"
 #include "TextureLoader.h"
+#include "TextRenderer.h"
 
 #include <btBulletDynamicsCommon.h>
 
@@ -31,17 +32,20 @@ LightRenderer* light = nullptr;
 MeshRenderer* sphere = nullptr;
 MeshRenderer* ground = nullptr;
 MeshRenderer* enemy = nullptr;
+TextRenderer* label = nullptr;
 
 GLuint sphereTexture;
 GLuint groundTexture;
 
 GLuint flatShaderProgram;
 GLuint texturedShaderProgram;
+GLuint textProgram;
 
 /*  This object keeps track of all the physics settings and objects in the current scene. */
 btDiscreteDynamicsWorld* dynamicsWorld;
 
 bool grounded = false;
+int score = 0;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -102,8 +106,6 @@ int main(){
 
         dynamicsWorld->stepSimulation(dt);
 
-        
-
         renderScene();
 
         glfwSwapBuffers(window);
@@ -142,12 +144,17 @@ void initGame() {
     /* Globally declared */
 	flatShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/FlatModel.vs",ASSEST_FOLDER_PATH "/shader/FlatModel.fs");
 	texturedShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/TexturedModel.vs", ASSEST_FOLDER_PATH "/shader/TexturedModel.fs");
-	
+	textProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/text.vs", ASSEST_FOLDER_PATH "/shader/text.fs");
+
 	camera = new Camera(45.0f, 800, 600, 0.1f, 100.0f, glm::vec3(0.0f, 4.0f, 20.0f));
 
 	light = new LightRenderer(MeshType::kTriangle, camera);
     light->setProgram(flatShaderProgram);
     light->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
+
+    //text label
+	label = new TextRenderer("Score: 0", ASSEST_FOLDER_PATH "/fonts/gooddog.ttf", 64, glm::vec3(1.0f, 0.0f, 0.0f), textProgram, glm::vec2(320.0f, 500.0f));
+	// label->setPosition(glm::vec2(320.0f, 500.0f));
 
     //init physics
 	btBroadphaseInterface* broadphase = new btDbvtBroadphase();
@@ -165,12 +172,13 @@ void initGame() {
 
 void renderScene(){
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);   // sets the color
+    glClearColor(0.7, 0.8, 0.6, 1.0);   // sets the color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
     sphere->draw();
     ground->draw();
     enemy->draw();
+    label->draw();
     // light_renderer->draw();
 }
 
@@ -319,6 +327,8 @@ void myTickCallback(btDynamicsWorld *dynamicsWorld, btScalar timeStep){
                 the screen, as shown in the following screenshot:
             */
 			t.setOrigin(btVector3(18, 1, 0));
+            score++;
+			label->setText("Score: " + std::to_string(score));
 		}
 
 		enemy->rigidBody->setWorldTransform(t);
@@ -369,6 +379,9 @@ void myTickCallback(btDynamicsWorld *dynamicsWorld, btScalar timeStep){
 						gModA->rigidBody->setWorldTransform(a);
 						gModA->rigidBody->getMotionState()->setWorldTransform(a);
                     }
+
+                    score = 0;
+					label->setText("Score: " + std::to_string(score));
                 }
 
                 if((gModA->name == "hero" && gModB->name == "ground") || (gModA->name == "ground" && gModB->name == "hero")){

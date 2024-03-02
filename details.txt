@@ -22,3 +22,21 @@ target_include_directories(${APP_NAME} PUBLIC ${BULLET_INCLUDE_DIR})
 
 
 # find_package(Bullet REQUIRED): CMake 3.22.1 comes installed with the cmake package
+
+#################################################################################################################
+
+$ wget https://download.savannah.gnu.org/releases/freetype/freetype-2.10.0.tar.gz
+$ tar xvzf freetype-2.10.0.tar.gz
+$ cd freetype-2.10.0
+$ ./configure --prefix=/home/nbaskey/Documents/current_projects/doing/cpp_game_dev_packt/dependencies/freefont_libs/
+$ make j4
+$ make install or $ sudo make install
+
+#################################################################################################################
+Question: how to link pre compiled static or dynamic libraries in cmake ?
+
+# Set the directory containing your pre-compiled static library
+link_directories(/path/to/libraries)
+
+# Link the static or shared library to your executable
+target_link_libraries(your_executable_name my_lib)
