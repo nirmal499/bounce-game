@@ -41,13 +41,15 @@ GLuint texturedShaderProgram;
 /*  This object keeps track of all the physics settings and objects in the current scene. */
 btDiscreteDynamicsWorld* dynamicsWorld;
 
+bool grounded = false;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
 
 void initGame();
 void renderScene();
 void addRigidBodies();
 void myTickCallback(btDynamicsWorld *dynamicsWorld, btScalar timeStep);
+void updateKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 static void glfwError(int id, const char* description)
 {
@@ -72,6 +74,7 @@ int main(){
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetKeyCallback(window, updateKeyboard);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -99,7 +102,7 @@ int main(){
 
         dynamicsWorld->stepSimulation(dt);
 
-        processInput(window);
+        
 
         renderScene();
 
@@ -122,13 +125,6 @@ int main(){
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow *window)
-{
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
-        glfwSetWindowShouldClose(window, true); 
-    }
 }
 
 void initGame() {
@@ -327,4 +323,89 @@ void myTickCallback(btDynamicsWorld *dynamicsWorld, btScalar timeStep){
 
 		enemy->rigidBody->setWorldTransform(t);
 		enemy->rigidBody->getMotionState()->setWorldTransform(t);
+
+        /*  Checking collision: we need to check for collision between the sphere and the enemy, as
+            well as the sphere and the ground
+        */
+        grounded = false; /* describes a state if the sphere is touching the ground. If this is true, it means sphere touch the ground so, we add impluse to the sphere. */
+
+        /*  To check the number of contacts between objects, we will use the
+            getNumManifolds property of the dynamic world object. The manifold will
+            contain information regarding all the contacts in the scene per update cycle 
+        */
+        int numManifolds = dynamicsWorld->getDispatcher()->getNumManifolds();
+        for(int i = 0; i < numManifolds ; i++){
+
+            btPersistentManifold *contactManifold = dynamicsWorld->getDispatcher()->getManifoldByIndexInternal(i);
+            int numContacts = contactManifold->getNumContacts();
+
+            /* We need to check whether the number of contacts is greater than zero. */
+            if(numContacts > 0){
+                const btCollisionObject *objA = contactManifold->getBody0();
+                const btCollisionObject *objB = contactManifold->getBody1();
+
+                MeshRenderer* gModA = (MeshRenderer*)objA->getUserPointer();
+                MeshRenderer* gModB = (MeshRenderer*)objB->getUserPointer();
+
+                if((gModA->name == "hero" && gModB->name == "enemy") || (gModA->name == "enemy" && gModB->name == "hero")){
+                    printf("collision: %s with %s \n", gModA->name.c_str(), gModB->name.c_str());
+                    
+                    /*  If there has been contact between the sphere and the enemy, we set the position of
+                        the enemy back to the right of the viewport. 
+                    */
+                    if(gModB->name == "enemy"){
+                        
+                        // gModA is hero && gModB is enemy
+                        btTransform b(gModB->rigidBody->getWorldTransform());
+						b.setOrigin(btVector3(18, 1, 0));
+						gModB->rigidBody->setWorldTransform(b);
+						gModB->rigidBody->getMotionState()->setWorldTransform(b);
+
+                    } else {
+
+                        // gModA is enenmy && gModB is hero
+                        btTransform a(gModA->rigidBody->getWorldTransform());
+						a.setOrigin(btVector3(18, 1, 0));
+						gModA->rigidBody->setWorldTransform(a);
+						gModA->rigidBody->getMotionState()->setWorldTransform(a);
+                    }
+                }
+
+                if((gModA->name == "hero" && gModB->name == "ground") || (gModA->name == "ground" && gModB->name == "hero")){
+                    printf("collision: %s with %s \n", gModA->name.c_str(), gModB->name.c_str());
+
+                    grounded = true;
+                }
+
+            }
+
+        }
+}
+
+/*  Let's add some keyboard controls so that we can interact with the sphere. We will set it so
+    that, when we press the up key on the keyboard, the sphere jumps. We will add the jump
+    feature by applying an impulse to the sphere 
+*/
+void updateKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods){
+
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+	
+		glfwSetWindowShouldClose(window, true);
+	
+	}
+
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+
+		if (grounded == true) {
+            /*  To make the sphere jump, we check whether the up key was pressed. If it was, we
+                create a new Boolean member variable called grounded, which describes a state if
+                the sphere is touching the ground. If this is true, we set the Boolean value to
+                false and apply an impulse of 100 units on the sphere's rigid body origin in the
+                Y direction by calling the applyImpulse function of rigidbody 
+            */
+            grounded = false;
+            sphere->rigidBody->applyImpulse(btVector3(0.0f, 100.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f));
+            printf("pressed up key \n");
+		}
+	}
 }
