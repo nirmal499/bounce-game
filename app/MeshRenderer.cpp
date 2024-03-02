@@ -1,12 +1,16 @@
 #include "MeshRenderer.h"
 
-MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody, std::string _name) {
+MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody, std::string _name, LightRenderer* _light, float _specularStrength, float _ambientStrength) {
 
 	this->rigidBody = _rigidBody;
 	this->camera = camera;
 	this->scale =  glm::vec3(1.0f, 1.0f, 1.0f);
 	this->position = glm::vec3(0.0, 0.0, 0.0);
 	this->name = _name;
+
+	light = _light;
+	ambientStrength = _ambientStrength;
+	specularStrength = _specularStrength;
 
 	switch (meshType) {
 
@@ -34,6 +38,9 @@ MeshRenderer::MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigi
     /* "(void*)(offsetof(Vertex, Vertex::texCoords)" is the offset of the  attribute of the texCoords */
 	glEnableVertexAttribArray(1); // texCoords(vec2) attribute of the vertex
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, Vertex::texCoords)));
+
+	glEnableVertexAttribArray(2); // normal(vec2) attribute of the vertex
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, Vertex::normal)));
 
     /* "sizeof(Vertex)" is the stride */
 	
@@ -75,10 +82,10 @@ void MeshRenderer::draw() {
 	
 	glUseProgram(this->program);
 
-		GLint vpLoc = glGetUniformLocation(program, "vp");
+		GLint vpLoc = glGetUniformLocation(program, "vp"); // vertex shader
         glUniformMatrix4fv(vpLoc, 1, GL_FALSE, glm::value_ptr(vp));
 
-        GLint modelLoc = glGetUniformLocation(program, "model");
+        GLint modelLoc = glGetUniformLocation(program, "model"); // vertex shader
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
 		/* 	You might be wondering why we aren't using glUniformMatrix4fv or
@@ -88,6 +95,22 @@ void MeshRenderer::draw() {
 			require to bind the texture.
 		*/
 		glBindTexture(GL_TEXTURE_2D, this->texture);
+
+		/* Set Lighting: we pass the camera position, light position, light color, specular strength, and ambient strength as uniforms to the shader */
+		GLuint cameraPosLoc = glGetUniformLocation(program, "cameraPos"); // fragment shader
+		glUniform3f(cameraPosLoc, camera->getCameraPosition().x, camera->getCameraPosition().y, camera->getCameraPosition().z);
+
+		GLuint lightPosLoc = glGetUniformLocation(program, "lightPos"); // fragment shader
+		glUniform3f(lightPosLoc, this->light->getPosition().x, this->light->getPosition().y, this->light->getPosition().z);
+
+		GLuint lightColorLoc = glGetUniformLocation(program, "lightColor"); // fragment shader
+		glUniform3f(lightColorLoc, this->light->getColor().x, this->light->getColor().y, this->light->getColor().z);
+
+		GLuint specularStrengthLoc = glGetUniformLocation(program, "specularStrength"); // fragment shader
+		glUniform1f(specularStrengthLoc, specularStrength);
+
+		GLuint ambientStrengthLoc = glGetUniformLocation(program, "ambientStrength"); // fragment shader
+		glUniform1f(ambientStrengthLoc, ambientStrength);
 
         glBindVertexArray(vao);
         

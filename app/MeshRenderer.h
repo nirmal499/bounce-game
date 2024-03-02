@@ -23,7 +23,8 @@
 class MeshRenderer{
     public:
 
-        MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody, std::string _name);
+        /*  For each object to be lit, we also need to pass in the light color, diffuse, and specular strength */
+        MeshRenderer(MeshType meshType, Camera* camera, btRigidBody* _rigidBody, std::string _name, LightRenderer* _light, float _specularStrength, float _ambientStrength);
         ~MeshRenderer();
 
         void draw();
@@ -46,6 +47,9 @@ class MeshRenderer{
 
         glm::vec3 position, scale;
         GLuint vao, vbo, ebo, texture, program;
+
+        LightRenderer* light;
+        float ambientStrength, specularStrength;
 };
 
 #endif

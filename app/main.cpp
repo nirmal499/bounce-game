@@ -40,6 +40,7 @@ GLuint groundTexture;
 GLuint flatShaderProgram;
 GLuint texturedShaderProgram;
 GLuint textProgram;
+GLuint litTexturedShaderProgram;
 
 /*  This object keeps track of all the physics settings and objects in the current scene. */
 btDiscreteDynamicsWorld* dynamicsWorld;
@@ -145,12 +146,14 @@ void initGame() {
 	flatShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/FlatModel.vs",ASSEST_FOLDER_PATH "/shader/FlatModel.fs");
 	texturedShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/TexturedModel.vs", ASSEST_FOLDER_PATH "/shader/TexturedModel.fs");
 	textProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/text.vs", ASSEST_FOLDER_PATH "/shader/text.fs");
+    litTexturedShaderProgram = shader.createProgram(ASSEST_FOLDER_PATH "/shader/LitTexturedModel.vs", ASSEST_FOLDER_PATH "/shader/LitTexturedModel.fs");
 
 	camera = new Camera(45.0f, 800, 600, 0.1f, 100.0f, glm::vec3(0.0f, 4.0f, 20.0f));
 
-	light = new LightRenderer(MeshType::kTriangle, camera);
+	light = new LightRenderer(MeshType::kSphere, camera);
     light->setProgram(flatShaderProgram);
-    light->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
+    light->setPosition(glm::vec3(0.0f, 10.0f, 0.0f));
+    light->setColor(glm::vec3(1.0f, 1.0f, 1.0f));
 
     //text label
 	label = new TextRenderer("Score: 0", ASSEST_FOLDER_PATH "/fonts/gooddog.ttf", 64, glm::vec3(1.0f, 0.0f, 0.0f), textProgram, glm::vec2(320.0f, 500.0f));
@@ -179,7 +182,7 @@ void renderScene(){
     ground->draw();
     enemy->draw();
     label->draw();
-    // light_renderer->draw();
+    light->draw();
 }
 
 void addRigidBodies(){
@@ -223,8 +226,9 @@ void addRigidBodies(){
     dynamicsWorld->addRigidBody(sphereRigidBody);
 
     // Sphere Mesh
-	sphere = new MeshRenderer(MeshType::kSphere, camera, sphereRigidBody, "hero");
-	sphere->setProgram(texturedShaderProgram);
+	sphere = new MeshRenderer(MeshType::kSphere, camera, sphereRigidBody, "hero", light, 0.1f, 0.5f);
+	// sphere->setProgram(texturedShaderProgram);
+	sphere->setProgram(litTexturedShaderProgram);
     sphere->setTexture(sphereTexture);
     /* We don't have to set the position, as that will be set by the rigid body */
 	// sphere->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -256,8 +260,9 @@ void addRigidBodies(){
 	dynamicsWorld->addRigidBody(groundRigidBody);
 
     // Ground Mesh
-	ground = new MeshRenderer(MeshType::kCube, camera, groundRigidBody, "ground");
-	ground->setProgram(texturedShaderProgram);
+	ground = new MeshRenderer(MeshType::kCube, camera, groundRigidBody, "ground", light, 0.1f, 0.5f);
+	// ground->setProgram(texturedShaderProgram);
+	ground->setProgram(litTexturedShaderProgram);
 	ground->setTexture(groundTexture);
 	ground->setScale(glm::vec3(4.0f, 0.5f, 4.0f));
 
@@ -285,8 +290,9 @@ void addRigidBodies(){
     dynamicsWorld->addRigidBody(rb);
 
 	// Enemy Mesh
-	enemy = new MeshRenderer(MeshType::kCube, camera, rb, "enemy");
-	enemy->setProgram(texturedShaderProgram);
+	enemy = new MeshRenderer(MeshType::kCube, camera, rb, "enemy", light, 0.1f, 0.5f);
+	// enemy->setProgram(texturedShaderProgram);
+	enemy->setProgram(litTexturedShaderProgram);
 	enemy->setTexture(groundTexture);
 	enemy->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
 
