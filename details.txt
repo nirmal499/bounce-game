@@ -35,7 +35,7 @@ $ make install or $ sudo make install
 #################################################################################################################
 Question: how to link pre compiled static or dynamic libraries in cmake ?
 
-# Set the directory containing your pre-compiled static library
+# Set the directory containing your pre-compiled static library or shared library
 link_directories(/path/to/libraries)
 
 # Link the static or shared library to your executable
